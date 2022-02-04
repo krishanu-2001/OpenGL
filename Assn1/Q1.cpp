@@ -28,11 +28,14 @@ void Draw() {
 	glVertex2i(580, 250);
 	glEnd();
 
+	glColor3f(1,0,0);
 	glBegin(GL_POLYGON);
 	glVertex2i(400, 550);
 	glVertex2i(240, 350);
 	glVertex2i(560, 350);
 	glEnd();
+
+	glColor3f(0.1,0.8,0.1);
 
 	glBegin(GL_POLYGON);
 	glVertex2i(400, 650);
@@ -56,7 +59,7 @@ int main(int argc, char *argv[]) {
 	glutInit(&argc, argv);
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(800, 800);
-	glutInitDisplayMode(GLUT_RGB);
+	glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
 
 	glutCreateWindow("Assignment 1");
 	gluOrtho2D(0, 800, 0, 800);
