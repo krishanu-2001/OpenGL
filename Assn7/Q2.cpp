@@ -33,9 +33,13 @@ float xOrigin = -1;
 float yOrigin = -1;
 vector<GLfloat> tx(3);
 
+/* ----------- function declarations ------------*/
 void keyboard(int, int, int);
 void shapeTranslate(GLfloat[32][3]);
+void updateLight();
 void MyInit();
+void init_texture();
+void output(GLfloat, GLfloat, char *);
 void Spin();
 void Face(GLfloat[], GLfloat[], GLfloat[], GLfloat[]);
 void Cube(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[], GLfloat V4[], GLfloat V5[], GLfloat V6[], GLfloat V7[]);
@@ -47,6 +51,7 @@ void mouseButton(int, int, int, int);
 
 GLuint texture[2];
 
+/* ----------- function definitions ------------*/
 void init_texture(void)
 {
     glClearColor(0.0, 0.0, 0.0, 0.0);

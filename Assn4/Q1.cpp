@@ -18,8 +18,11 @@ int r;
 
 void BresenhamCircle(int x1, int y1, int r) {
     glColor3f(0,0,0);
-
-    int p = 3 - 2*r;
+    y1
+    y
+    y2
+    // p = d1 - d2
+    int p = 3 - 2*r; // starting value of decision parameter
     int xi = 0, yi = r;
     // innitialize parameters
     // if d > 0 then d = d + 4 * (x - y) + 10; and go down
@@ -37,14 +40,16 @@ void BresenhamCircle(int x1, int y1, int r) {
     glVertex2i(x1-yi, y1-xi);
     
     while(xi <= yi) {
-        xi = xi+1;
         if(p > 0) {
             // go down
             p = p+4*(xi-yi)+10;
+            xi = xi+1;
             yi=yi-1;
         } else if(p <= 0) {
             // stay
             p = p+4*xi+6;
+            xi = xi+1;
+
         }
         /*-------- draw all 8 octants --------*/
         glVertex2i(x1+xi, y1+yi);
