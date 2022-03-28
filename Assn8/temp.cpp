@@ -1,1073 +1,681 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
+#include <stdlib.h>
+#include <math.h>
+#include "imageio.h"
 
-#if defined __APPLE__
-    #include <GLUT/glut.h>
+#include <bits/stdc++.h>
+using namespace std;
+
+#ifdef __APPLE__
+#include <GLUT/glut.h>
 #else
-    #include <GL/glut.h>
+#include <GL/glut.h>
 #endif
 
-#define BLACK 0, 0, 0
+/*
+ * Name: Krishanu Saini
+ * Assn: 8
+ * Ques: Build interior of house
+ * Step: run ./Q3
+ * Uses: arrow keys to move
+ *       r for door
+ *       d for windows
+ */
 
-//make a global variable -- for tracking the anglular position of camera
-double cameraAngle;			//in radian
-double cameraAngleDelta;
-
-double cameraHeight;	
-double cameraRadius;
-
-double rectAngle;	//in degree
-
-bool canDrawGrid;
-GLUquadric *quad;
-
-
-void swap(int &a,int &b)
-{
-	int t=a;
-	a=b;
-	b=t;
-}
+// angle of rotation for the camera direction
+float angle = 0.0f, angley = 0.0f;
+int y_rot = 0.0, y_door = 0.0;
+// actual vector representing the camera's direction
+float lx = 0.0f, lz = -1.0f, ly = 0.0f;
+float lx_delta = 0.0f;
+// XZ position of the camera
+float x = 0.0f, z = 5.0f;
 
 
+GLfloat intensity = 0;
+GLubyte *textureImage;
+vector<GLfloat> tx(3);
+GLuint texture[2];
 
+// the key states. These variables will be zero
+// when no key is being presses
+float deltaAngle = 0.0f;
+float deltaAngley = 0.0f;
+float deltaMove = 0;
+int xOrigin = -1;
+int yOrigin = -1;
 
+// Positions of lights
+GLfloat front_left_light_position[] = {-1.0, 0.0, 1.0, 0.0};
+GLfloat front_right_light_position[] = {1.0, 0.0, 1.0, 0.0};
+GLfloat back_left_light_position[] = {-1.0, 0.0, -1.0, 0.0};
+GLfloat back_right_light_position[] = {1.0, 0.0, -1.0, 0.0};
 
-void chair(double x,double y,int r1,int r2,int r3,int r4)
-{
-
-	double equ[4];
-
-	//z=1 er niche shob bad
-	equ[0] = 0;	//0.x
-	equ[1] = 0;	//0.y
-	equ[2] = 1;//1.z
-	equ[3] = -16;//0
-	
-	
-	
-	glClipPlane(GL_CLIP_PLANE0,equ);
-
-	//now we enable the clip plane
-
-	glEnable(GL_CLIP_PLANE0);
-	{	
-		glColor3f(1, 0, 0);
-		glPushMatrix();
-		{
-			glTranslatef(x,y,10);
-			glutSolidCube(20);
-		}glPopMatrix();
-		
-	}glDisable(GL_CLIP_PLANE0);
-
-
-
-	int j,i;
-	int dx[4]={1,1,-1,-1};
-	int dy[4]={-1,1,-1,1};
-	int rise[4]={r1,r2,r3,r4};
-	
-	
-
-
-	for(i=0;i<4;i++)
-	{
-		for(j=14;j>=2;j-=4)
-		{
-			glColor3f(0, 1, 1);
-			glPushMatrix();
-			{
-				glTranslatef(x+7*dx[i],y+7*dy[i],j);
-				glutSolidCube(4);
-			}glPopMatrix();
-		}
-
-		
-		if(rise[i])
-		for(j=38;j>=14;j-=4)
-		{
-			glColor3f(0, 1, 1);
-			glPushMatrix();
-			{
-				glTranslatef(x+7*dx[i],y+7*dy[i],j);
-				glutSolidCube(4);
-			}glPopMatrix();
-			
-		}
-	}	
-	
-	
-	int x1,x2;
-	int y1,y2;
-	for(i=0;i<4;i++)
-	for(j=i+1;j<4;j++)
-	{
-		if(rise[i]  && rise[j])
-		{
-			x1=x+7*dx[i];
-			x2=x+7*dx[j];
-			
-
-			y1=y+7*dy[i];
-			y2=y+7*dy[j];
-
-			goto last;
-		}
-	}
-	last:
-	
-	if(x1>x2) swap(x1,x2);
-	if(y1>y2) swap(y1,y2);
-	
-	
-	
-	for(j=38;j>=15;j-=7)
-	{
-		for(x=x1;x<=x2;x+=3)
-		for(y=y1;y<=y2;y+=3)
-		{
-			glColor3f(1, 0, 1);
-			glPushMatrix();
-			{
-				glTranslatef(x,y,j);
-				glutSolidCube(3);
-			}glPopMatrix();
-		}
-	}
-	
-
-
-
-}
-
-
-void shelf()
-{
-	
-	int i,j;
-	double equ[4];
-
-	//z=1 er niche shob bad
-	equ[0] = 0;	//0.x
-	equ[1] = 0;	//0.y
-	equ[2] = 1;//1.z
-	
-		
-
-	//base
-	for(i=-40;i<=40;i+=20)
-	{
-		glColor3f(1, 0, 0);
-		glPushMatrix();
-		{
-			glTranslatef(90,i,10);
-			glutSolidCube(20);
-		}glPopMatrix();
-	
-		
-		for(j=30;j<=70;j+=20)
-		{
-			equ[3]=-j-7;
-
-			glClipPlane(GL_CLIP_PLANE0,equ);
-
-			//now we enable the clip plane
-
-			glEnable(GL_CLIP_PLANE0);
-			{
-				glColor3f(0,0.3,0.8);	//blue
-				glPushMatrix();
-				{
-					glTranslatef(90,i,j);
-					glutSolidCube(20);
-				}
-				glPopMatrix();
-			}
-			glDisable(GL_CLIP_PLANE0);
-		}
-	}
-		
-
-
-	
-	equ[0] = 1;
-	equ[1] = 0;
-	equ[2] = 0;
-	equ[3]=-100;
-	
-	glClipPlane(GL_CLIP_PLANE0,equ);
-	glEnable(GL_CLIP_PLANE0);
-	{
-		glColor3f(0,0.7,0.8);	//blue
-		glPushMatrix();
-		{
-			glTranslatef(52,0,50);
-			glutSolidCube(100);
-		}
-		glPopMatrix();
-	}
-	glDisable(GL_CLIP_PLANE0);
-
-	
-
-	for(i=20;i<=80;i+=3)
-	{
-		glColor3f(0,0.7,0.8);	//blue
-		glPushMatrix();
-		{
-			glTranslatef(82,-48,i);
-			glutSolidCube(3);
-		}
-		glPopMatrix();
-
-		glPushMatrix();
-		{
-			glTranslatef(82,48,i);
-			glutSolidCube(3);
-		}
-		glPopMatrix();
-	}
-
-}
-
-
-
-
-void table()
-{
-	/*
-	//scaling
-	glPushMatrix();
-	{
-		glScaled(3,4,1);
-		glTranslatef(0,0,30);
-		glutSolidSphere(10, 20, 20);
-		
-	}
-	glPopMatrix();*/
-	
-		
-	//top outer circle
-	glColor3f(0,0,0);
-	glPushMatrix ();
-	{
-		glScaled(1.25,1.65,1);
-		glTranslatef (0, 0, 30);
-		gluDisk (quad, 28, 30, 18, 1);
-    }
-	glPopMatrix ();
-	
-	//top inner circle
-	glColor3f(1,.5,0);
-	glPushMatrix ();
-	{
-		glScaled(1.25,1.65,1);
-		glTranslatef (0, 0, 30);
-		gluDisk (quad, 0, 28, 18, 1);
-    }
-	glPopMatrix ();
-
-
-
-	
-	//4 sticks of table
-	glColor3f(.2,.5,.9);
-	int i;
-	int dx[4]={20,20,-20,-20};
-	int dy[4]={-20,20,-20,20};
-	for(i=0;i<4;i++)
-	{
-		glPushMatrix ();
-		{
-			glTranslatef (dx[i],dy[i], 0);
-			gluCylinder (quad, 4,4, 30, 18, 1);
-		}
-		glPopMatrix ();
-	}	
-
-	//sticks joining sticks of table
-	glColor3f(.3,.3,.3);
-	for(i=-20;i<=20;i+=4)
-	{
-		glPushMatrix ();
-		{
-			glTranslatef (i,20, 20);
-			glutSolidCube(4);
-		}
-		glPopMatrix ();
-		
-		glPushMatrix ();
-		{
-			glTranslatef (0,i, 20);
-			glutSolidCube(4);
-		}
-		glPopMatrix ();
-		
-
-		glPushMatrix ();
-		{
-			glTranslatef (i,-20, 20);
-			glutSolidCube(4);
-		}
-		glPopMatrix ();
-	}
-	
-	
-
-
-}
-
-
-
-
-void chandelier()
+void changeSize(int w, int h)
 {
 
+    // Prevent a divide by zero, when window is too short
+    // (you cant make a window of zero width).
+    if (h == 0)
+        h = 1;
 
-	glColor3f(1,.5,.2);
-	glPushMatrix ();
-	{
-		glTranslatef (0, 0, 85);
-		glScaled(1,1,200);
-		gluDisk (quad, 0, 20, 18, 1);
-    }
-	glPopMatrix ();
-	
-	
-	
-	glColor3f(1,.5,.2);
-	glPushMatrix ();
-	{
-		glTranslatef (0, 0, 110);
-		glScaled(1,1,200);
-		gluDisk (quad, 0, 30, 18, 1);
-    }
-	glPopMatrix ();
-	
+    float ratio = w * 1.0 / h;
 
+    // Use the Projection Matrix
+    glMatrixMode(GL_PROJECTION);
 
+    // Reset Matrix
+    glLoadIdentity();
 
+    // Set the viewport to be the entire window
+    glViewport(0, 0, w, h);
 
-	glColor3f(.3,.5,.6);
-	glPushMatrix ();
-	{
-		glTranslatef (0, 0, 110);
-		gluCylinder (quad, 1,2, 30, 18, 1);
-    }
-	glPopMatrix ();
+    // Set the correct perspective.
+    gluPerspective(45.0f, ratio, 0.1f, 100.0f);
 
-	
-	
-	glColor3f(.2,.5,.9);
-	int i,j;
-	
-	int dx[4]={2,2,-2,-2};
-	int dy[4]={-2,2,-2,2};
-
-	int dx1[8]={0,0,10,10,-10,-10,18,-18};
-	int dy1[8]={18,-18,-13,13,13,-13,0,0};
-	
-	for(i=0;i<4;i++)
-	{
-		glPushMatrix ();
-		{
-			glTranslatef(dx[i],dy[i], 85);
-			gluCylinder(quad, 2,2, 30, 18, 1);
-		}
-		glPopMatrix ();
-	}
-	
-
-	int c[3];
-	for(i=0;i<8;i++)
-	{
-		glColor3f(1,1,1);
-		glPushMatrix ();
-		{
-			glTranslatef(dx1[i],dy1[i], 85);
-			gluCylinder(quad, 2,2, 25, 18, 1);
-		}
-		glPopMatrix ();
-
-		
-		glColor3f(.7,.6,.9);
-		glPushMatrix ();
-		{
-			glTranslatef(dx1[i],dy1[i], 110);
-			gluCylinder(quad, 2,2, 5, 18, 1);
-		}
-		glPopMatrix ();
-
-
-
-		glColor3f(1,0,0);
-		glPushMatrix ();
-		{
-			glTranslatef(dx1[i],dy1[i], 117);
-			glutSolidSphere(2,2,2);
-		}
-		glPopMatrix ();
-
-		
-		c[0]=c[1]=c[2]=0;
-		for(j=111;j>=70;j-=4)
-		{
-			c[(j+1)%3]=1;
-			glColor3f(c[0],c[1],c[2]);
-			glPushMatrix ();
-			{
-				glTranslatef(1.6*dx1[i],1.6*dy1[i], j);
-				glutSolidSphere(1,4,4);
-			}
-			glPopMatrix ();
-			c[(j+1)%3]=0;
-		}
-		
-	}
-	
+    // Get Back to the Modelview
+    glMatrixMode(GL_MODELVIEW);
 }
 
-
-
-
-
-void window()
+void drawSnowMan()
 {
-	int i,j,z,j1;
-	int x[4]={-100,-100,-120,-120};
-	int y[4]={30,-30,50,-50};
-	
-	
-	glColor3f(.6,.6,.1);		
-	for(i=0;i<4;i++)
-	{
-		glPushMatrix ();
-		{
-			glTranslatef(x[i],y[i], 50);
-			gluCylinder(quad, 2,2, 50, 18, 1);
-		}
-		glPopMatrix ();
-	}
 
+    glColor3f(1.0f, 1.0f, 1.0f);
 
-	for(i=-30;i<=30;i+=4)
-	{
-		glPushMatrix ();
-		{
-			glTranslatef(-100,i, 50);
-			glutSolidCube(4);
-		}
-		glPopMatrix ();
+    // Draw Body
+    glTranslatef(0.0f, 0.75f, 0.0f);
+    glutSolidSphere(0.75f, 20, 20);
 
-		glPushMatrix ();
-		{
-			glTranslatef(-100,i, 100);
-			glutSolidCube(4);
-		}
-		glPopMatrix ();
-	}
-	
+    // Draw Head
+    glTranslatef(0.0f, 1.0f, 0.0f);
+    glutSolidSphere(0.25f, 20, 20);
 
-	glColor3f(1,1,1);
-	
-	
+    // Draw Eyes
+    glPushMatrix();
+    glColor3f(0.0f, 0.0f, 0.0f);
+    glTranslatef(0.05f, 0.10f, 0.18f);
+    glutSolidSphere(0.05f, 10, 10);
+    glTranslatef(-0.1f, 0.0f, 0.0f);
+    glutSolidSphere(0.05f, 10, 10);
+    glPopMatrix();
 
-	for(i=-100,j=30,j1=-30;i>=-120;i-=4,j+=4,j1-=4)
-	{
-		for(z=50;z<=100;z+=25)
-		{
-			glPushMatrix ();
-			{
-				glTranslatef(i,j,z);
-				glutSolidCube(4);
-			}
-			glPopMatrix ();
-		}
-		for(z=50;z<=100;z+=25)
-		{
-			glPushMatrix ();
-			{
-				glTranslatef(i,j1,z);
-				glutSolidCube(4);
-			}
-			glPopMatrix ();
-		}
-	}
-	
-
-	
-
-	//window knobs
-	z=75;
-	i+=4,j-=5,j1+=5;
-	glColor3f(0,0,0);
-	glPushMatrix ();
-	{
-		glTranslatef(i,j,z);
-		glutSolidSphere(2,5,5);
-	}
-	glPopMatrix ();
-
-	glPushMatrix ();
-	{
-		glTranslatef(i,j1,z);
-		glutSolidSphere(2,5,5);
-	}
-	glPopMatrix ();
-	
-
-
-
-
+    // Draw Nose
+    glColor3f(1.0f, 0.5f, 0.5f);
+    glRotatef(0.0f, 1.0f, 0.0f, 0.0f);
+    glutSolidCone(0.08f, 0.5f, 10, 2);
 }
 
-
-bool st;
-double H;
-double segs=30;
-double min(double a,double b)
+void computePos(float deltaMove)
 {
-	if(a<b) return a;
-	else return b;
-	
+
+    x += deltaMove * lx * 0.1f;
+    z += deltaMove * lz * 0.1f;
 }
-double max(double a,double b)
+
+void init_texture(void)
 {
-	if(a>b) return a;
-	else return b;
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glEnable(GL_DEPTH_TEST);
+    // The following two lines enable semi transparent
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    int width, height;
+    int width1, height1;
+    bool hasAlpha;
+    char filename[] = "cupboard.png";
+    char filename1[] = "d1.png";
+    // bool success = loadPngImage(filename, width, height, hasAlpha, &textureImage);
+    unsigned char *ibuffer = loadImageRGBA(filename, &width, &height);
+    std::cout << "Image loaded " << width << " " << height << " alpha " << hasAlpha << std::endl;
+    std::cout << "Image loaded " << width1 << " " << height1 << " alpha " << hasAlpha << std::endl;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glGenTextures(2, texture);
+    cout << texture[0] << " " << texture[1] << endl;
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ibuffer);
+
+    ibuffer = loadImageRGBA(filename1, &width, &height);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, texture[1]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ibuffer);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glEnable(GL_TEXTURE_2D);
+    glShadeModel(GL_FLAT);
 }
 
-
-void screen()
+void FaceTexture(GLfloat A[], GLfloat B[], GLfloat C[], GLfloat D[], int text = 1)
 {
-	int i,j;
-	
-
-
-	
-	glColor3f(1,1,1);
-	for(i=-30;i<=30;i+=4)
-	{
-		glPushMatrix ();
-		{
-			glTranslatef(-95,i, 100);
-			glutSolidCube(4);
-		}
-		glPopMatrix ();
-
-	}
-
-	if(st==0) H=min(1.02*H,60);
-	else H=max(10,0.98*H);
-	
-
-	double h=H/segs;
-	
-
-	
-
-
-	//screen movement
-	double now=-30,now1;
-	double cl=1;
-	double x[4],y[4],z[4];
-
-	z[0]=100;
-	z[1]=100;
-	z[2]=50;
-	z[3]=50;
-
-	for(i=1;i<segs;i++)
-	{
-		now1=now+h;
-		
-		if(i%2)
-		{
-			x[0]=-90;
-			y[0]=now;
-
-			x[1]=-100;
-			y[1]=now1;
-
-			x[2]=-100;
-			y[2]=now1;
-		
-			x[3]=-90;
-			y[3]=now;
-	
-		}
-		else
-		{
-			x[0]=-100;
-			y[0]=now;
-	
-			x[1]=-90;
-			y[1]=now1;
-	
-			x[2]=-90;
-			y[2]=now1;
-	
-			x[3]=-100;
-			y[3]=now;
-		}
-
-		
-		glColor3f(0, 0, cl);
-		glPushMatrix();
-		{	//STORE the state
-			glBegin(GL_QUADS);
-			{
-				for(j=0;j<4;j++)
-				glVertex3f(x[j],y[j],z[j]);
-			}
-			glEnd();
-		}
-		glPopMatrix();
-		
-
-		now=now1;		
-		cl*=.95;
-	}
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture[text]);
+    glBegin(GL_POLYGON);
+    glTexCoord2f(1.0, 1.0);
+    glVertex3fv(A);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3fv(B);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3fv(C);
+    glTexCoord2f(1.0, 0.0);
+    glVertex3fv(D);
+    glEnd();
 }
+/*------------------ house functions --------------------*/
 
+GLfloat rec1[32][3] = {
+    {-10, 7, 9},
+    {10, 7, 9},
+    {10, 0, 9},
+    {-10, 0, 9},
+    {-10, 7, -9},
+    {10, 7, -9},
+    {10, 0, -9},
+    {-10, 0, -9},
+};
 
+GLfloat tri1[32][3] = {
+    {0, 3, 10},
+    {0, 3, 10},
+    {12, 0, 10},
+    {-12, 0, 10},
+    {-0, 3, -10},
+    {0, 3, -10},
+    {12, 0, -10},
+    {-12, 0, -10},
+};
 
+GLfloat win1[32][3] = {
+    {1, 1, 0},
+    {4, 1, 0},
+    {4, -2, 0},
+    {1, -2, 0},
+};
 
+GLfloat win2[32][3] = {
+    {1, 1, 0},
+    {4, 1, 0},
+    {4, -2, 0},
+    {1, -2, 0},
+};
 
+GLfloat door[32][3] = {
+    {-2, 2, 0},
+    {2, 2, 0},
+    {2, -4, 0},
+    {-2, -4, 0},
+};
 
+GLfloat handle[32][3] = {
+    {-0.1, -2.1, 0},
+    {0.1, -2.1, 0},
+    {0.1, -2, 0},
+    {-0.1, -2, 0},
+};
 
+GLfloat photo1[32][3] = {
+    {2.5, 2, 0},
+    {1, 1, 0},
+    {4, 1, 0},
+    {4, -1, 0},
+    {1, -1, 0},
+};
 
+GLfloat photo2[32][3] = {
+    {0, 2, 0},
+    {0, 1, 1},
+    {0, 1, -1},
+    {0, -1, -1},
+    {0, -1, 1},
+};
 
-void plate(double X,double Y,double Z,double r1,double r2,double h)
-{	
-	glColor3f(0,.2,.2);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z);
-		gluCylinder (quad, r1,r1+(r2-r1)/2, h/2, 13, 13);
-    }
-	glPopMatrix ();
-	
-	glColor3f(0,0,1);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z+h/2);
-		gluCylinder (quad, r1+(r2-r1)/2,r2+(r2-r1)/2, h/2, 13, 13);
-    }
-	glPopMatrix ();
+GLfloat cupboard[32][3] = {
+    {-2, 4, 1},
+    {2, 4, 1},
+    {2, 0, 1},
+    {-2, 0, 1},
+    {-2, 4, -1},
+    {2, 4, -1},
+    {2, 0, -1},
+    {-2, 0, -1},
+};
 
+GLfloat bed[32][3] = {
+    {0, 1, 2},
+    {6, 1, 2},
+    {6, 0, 2},
+    {0, 0, 2},
+    {0, 1, -2},
+    {6, 1, -2},
+    {6, 0, -2},
+    {0, 0, -2},
+};
 
-	glColor3f(1,1,1);
-	glPushMatrix ();
-	{
-		glScaled(1,1,1);
-		glTranslatef (X, Y, Z+.2);
-		gluDisk (quad, 0, r1, 18, 1);
-    }
-	glPopMatrix ();
+GLfloat bedpost[32][3] = {
+    {0, 3, 2},
+    {0.4, 3, 2},
+    {0.4, 1, 2},
+    {0, 1, 2},
+    {0, 3, -2},
+    {0.4, 3, -2},
+    {0.4, 1, -2},
+    {0, 1, -2},
+};
 
-
-}
-
-
-
-void glass(double X,double Y,double Z,double r1,double r2,double h)
+void shapeTranslate(GLfloat V[32][3])
 {
-	plate(X,Y,Z,r1,r2,h);
-	
-	glColor3f(1,1,1);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z+h);
-		gluCylinder (quad, r1,r2, 2, 13, 13);
+    for (int i = 0; i < 32; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            V[i][j] += tx[j];
+        }
     }
-	glPopMatrix ();
-
 }
 
-
-
-void bottle(double X,double Y,double Z)
+void MyInit()
 {
-	glColor3f(.4,1,.2);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z);
-		gluCylinder (quad, 2,3, 2, 13, 13);
+
+    // shapes and translate
+    tx = {0, 0, 0};
+    shapeTranslate(rec1);
+    tx = {0, 7.2, 0};
+    shapeTranslate(tri1);
+    tx = {-8, 4, 9.02};
+    shapeTranslate(win1);
+    tx = {3, 4, 9.02};
+    shapeTranslate(win2);
+    tx = {0, 4, 9.02};
+    shapeTranslate(door);
+    tx = {-0.5, 5, 9.03};
+    shapeTranslate(handle);
+    // furniture
+    tx = {2, 2, -8.97};
+    shapeTranslate(photo1);
+    tx = {-9.7, 2, 5};
+    shapeTranslate(photo2);
+    tx = {-0.5, 0, -8.97};
+    shapeTranslate(cupboard);
+    tx = {-8, 0, 0};
+    shapeTranslate(bed);
+    shapeTranslate(bedpost);
+
+    // items for
+    glClearColor(0, 0, 0, 1);
+    glEnable(GL_DEPTH_TEST);
+}
+
+void Face(GLfloat A[], GLfloat B[], GLfloat C[], GLfloat D[])
+{
+    glBegin(GL_POLYGON);
+    glVertex3fv(A);
+    glVertex3fv(B);
+    glVertex3fv(C);
+    glVertex3fv(D);
+    glEnd();
+}
+
+void Cube(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[], GLfloat V4[], GLfloat V5[], GLfloat V6[], GLfloat V7[])
+{
+    glColor3f(1, 0, 0);
+    /*
+    {-10, 7, 9},
+    {10, 7, 9},
+    {10, 0, 9},
+    {-10, 0, 9},
+    */
+    GLfloat cg[32][3] = {
+        {-10, 7, 9},
+        {10, 7, 9},
+        {10, 5, 9},
+        {-10, 5, 9},
+        {10, 0, 9},
+        {-10, 0, 9},
+        {-7, 0, 9},
+        {-7, 7, 9},
+        {7, 0, 9},
+        {7, 7, 9},
+        {7, 0, 9},
+        {7, 3, 9},
+        {4, 3, 9},
+        {4, 0, 9},
+        {2, 0, 9},
+        {2, 7, 9},
+        {4, 7, 9},
+        {4, 0, 9},
+        {-2, 0, 9},
+        {-2, 7, 9},
+        {-4, 7, 9},
+        {-4, 0, 9},
+        {-7, 0, 9},
+        {-7, 3, 9},
+        {-4, 3, 9},
+        {-4, 0, 9},
+    }; 
+    Face(cg[0], cg[1], cg[2], cg[3]); // Front
+    Face(cg[0], cg[5], cg[6], cg[7]); // Front
+    Face(cg[1], cg[4], cg[8], cg[9]); // Front
+    Face(cg[10], cg[11], cg[12], cg[13]); // Front
+    Face(cg[14], cg[15], cg[16], cg[17]); // Front
+    Face(cg[18], cg[19], cg[20], cg[21]); // Front
+    Face(cg[22], cg[23], cg[24], cg[25]); // Front
+    
+    glColor3f(0, 1, 0);
+    Face(V4, V5, V6, V7); // Back
+    glColor3f(0, 0, 1);
+    Face(V0, V4, V7, V3); // Left
+    glColor3f(1, 1, 0);
+    Face(V1, V5, V6, V2); // Right
+    glColor3f(1, 0, 1);
+    Face(V2, V3, V7, V6); // Bot
+    glColor3f(0, 1, 1);
+    Face(V0, V1, V5, V4); // Top
+}
+
+void Triangle(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[], GLfloat V4[], GLfloat V5[], GLfloat V6[], GLfloat V7[])
+{
+    glColor3f(0.5, 0, 0);
+    Face(V0, V1, V2, V3); // Front
+    glColor3f(0, 0.5, 0);
+    Face(V4, V5, V6, V7); // Back
+    glColor3f(0, 0, 0.5);
+    Face(V0, V4, V7, V3); // Left
+    glColor3f(0.5, 0.5, 0);
+    Face(V1, V5, V6, V2); // Right
+    glColor3f(0.5, 0, 0.5);
+    Face(V2, V3, V7, V6); // Bot
+    glColor3f(0.5, 1, 1);
+    Face(V0, V1, V5, V4); // Top
+}
+
+void Windows(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[])
+{
+    glColor3f(0.5, 0.7, 0.7);
+    Face(V0, V1, V2, V3); // Front
+}
+
+void Door(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[])
+{
+    glColor3f(1, 0.7, 0.7);
+    Face(V0, V1, V2, V3); // Front
+}
+
+float crgb[3] = {0.5, 0.5, 0.5};
+
+void Rope(GLfloat V0[], GLfloat V1[])
+{
+    glColor3f(crgb[0], crgb[1], crgb[2]);
+    glLineWidth(5);
+    glBegin(GL_LINE_LOOP);
+    glVertex3fv(V0);
+    glVertex3fv(V1);
+    glLineWidth(2);
+    glEnd();
+}
+
+void Texture_Box(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[])
+{
+    FaceTexture(V0, V1, V2, V3); // Front
+}
+
+void copyMatrix(GLfloat V[32][3], GLfloat rV[32][3])
+{
+    for (int i = 0; i < 32; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            V[i][j] = rV[i][j];
+        }
     }
-	glPopMatrix ();
-	Z+=2;
+}
 
-	
-	glColor3f(1,1,.6);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z);
-		gluCylinder (quad, 3,3,4, 13, 13);
+void Cupboard1(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[], GLfloat V4[], GLfloat V5[], GLfloat V6[], GLfloat V7[])
+{
+    FaceTexture(V0, V1, V2, V3, 0); // Front
+    Face(V4, V5, V6, V7);           // Back
+    Face(V0, V4, V7, V3);           // Left
+    Face(V1, V5, V6, V2);           // Right
+    Face(V2, V3, V7, V6);           // Bot
+    Face(V0, V1, V5, V4);           // Top
+}
+
+void Bed1(GLfloat V0[], GLfloat V1[], GLfloat V2[], GLfloat V3[], GLfloat V4[], GLfloat V5[],
+          GLfloat V6[], GLfloat V7[])
+{
+    Face(V0, V1, V2, V3); // Front
+    Face(V4, V5, V6, V7); // Back
+    Face(V0, V4, V7, V3); // Left
+    Face(V1, V5, V6, V2); // Right
+    Face(V2, V3, V7, V6); // Bot
+    Face(V0, V1, V5, V4); // Top
+}
+
+void Draw()
+{
+    Cube(rec1[0], rec1[1], rec1[2], rec1[3], rec1[4], rec1[5], rec1[6], rec1[7]);
+    Triangle(tri1[0], tri1[1], tri1[2], tri1[3], tri1[4], tri1[5], tri1[6], tri1[7]);
+    glPushMatrix();
+    glRotatef(y_door, 0.0, 1.0, 0.0);
+    Windows(win1[0], win1[1], win1[2], win1[3]);
+    Windows(win2[0], win2[1], win2[2], win2[3]);
+    glPopMatrix();
+
+    // open door
+    glPushMatrix();
+    glRotatef(y_rot, 0.0, 1.0, 0.0);
+    Door(door[0], door[1], door[2], door[3]);
+    glPopMatrix();
+
+    Windows(handle[0], handle[1], handle[2], handle[3]);
+    // photo1
+    Rope(photo1[0], photo1[1]);
+    Rope(photo1[0], photo1[2]);
+    Texture_Box(photo1[1], photo1[2], photo1[3], photo1[4]);
+
+    Rope(photo2[0], photo2[1]);
+    Rope(photo2[0], photo2[2]);
+    Texture_Box(photo2[1], photo2[2], photo2[3], photo2[4]);
+
+    glColor3f(0.4, 0.28, 0.25);
+    Cupboard1(cupboard[0], cupboard[1], cupboard[2], cupboard[3], cupboard[4], cupboard[5], cupboard[6], cupboard[7]);
+    glColor3f(0.4, 0.25, 0.20);
+    Bed1(bed[0], bed[1], bed[2], bed[3], bed[4], bed[5], bed[6], bed[7]);
+    glColor3f(0.5, 0.4, 0.8);
+    Bed1(bedpost[0], bedpost[1], bedpost[2], bedpost[3], bedpost[4], bedpost[5], bedpost[6], bedpost[7]);
+
+    // chandelier
+    glColor3f(1, 0, 0);
+    glPushMatrix();
+    GLUquadricObj *qobj = gluNewQuadric();
+    glTranslated(-5.0, 4, -5.0);
+    glRotatef(90, 1.0f, 0.0f, 0.0f);
+    gluCylinder(qobj, 0.2, 0.5, 1, 16, 16);
+    glColor3f(0.5, 0.5, 0);
+    gluCylinder(qobj, 0.05, 0.05, 4, 16, 16);
+    gluDeleteQuadric(qobj);
+    glPopMatrix();
+}
+
+void renderScene(void)
+{
+
+    if (deltaMove)
+        computePos(deltaMove);
+
+    // Clear Color and Depth Buffers
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Reset transformations
+    glLoadIdentity();
+    // Set the camera
+    lx += lx_delta;
+    gluLookAt(x, 1.0f, z + 40,
+              x + lx, 1.0f + ly, z + lz + 40,
+              0.0f, 1.0f, 0.0f);
+
+    // Draw ground
+
+    glColor3f(0.9f, 0.9f, 0.9f);
+    glBegin(GL_QUADS);
+    glVertex3f(-100.0f, -0.1f, -100.0f);
+    glVertex3f(-100.0f, -0.1f, 100.0f);
+    glVertex3f(100.0f, -0.1f, 100.0f);
+    glVertex3f(100.0f, -0.1f, -100.0f);
+    glEnd();
+
+    // draw house
+    Draw();
+
+    glutSwapBuffers();
+}
+
+void processNormalKeys(unsigned char key, int xx, int yy)
+{
+
+    if (key == 27)
+        exit(0);
+}
+
+void pressKey(int key, int xx, int yy)
+{
+
+    switch (key)
+    {
+    case GLUT_KEY_UP:
+        deltaMove = 0.1f;
+        break;
+    case GLUT_KEY_DOWN:
+        deltaMove = -0.1f;
+        break;
+    case GLUT_KEY_LEFT:
+        lx_delta = -0.0005;
+        break;
+    case GLUT_KEY_RIGHT:
+        lx_delta = 0.0005;
+        break;
     }
-	glPopMatrix ();
-	Z+=4;
-	
-	
+}
 
-	glColor3f(.4,.9,.9);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z);
-		gluCylinder (quad, 3,1.2,3, 13, 13);
+void releaseKey(int key, int x, int y)
+{
+    switch (key)
+    {
+    case GLUT_KEY_UP:
+    case GLUT_KEY_DOWN:
+        deltaMove = 0;
+        break;
+    case GLUT_KEY_LEFT:
+    case GLUT_KEY_RIGHT:
+        lx_delta = 0;
+        break;
     }
-	glPopMatrix ();
-	Z+=3;
+}
 
-	
-	glColor3f(.4,1,1);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z);
-		gluCylinder (quad, 1.2,1.2,3, 13, 13);
+void mouseMove(int x, int y)
+{
+
+    // this will only be true when the left button is down
+    if (xOrigin >= 0)
+    {
+
+        // update deltaAngle
+        deltaAngle = (x - xOrigin) * 0.001f;
+        deltaAngley = (y - yOrigin) * 0.001f;
+
+        // update camera's direction
+        lx = sin(angle + deltaAngle);
+        lz = -cos(angle + deltaAngle);
+		ly = -sin(angley + deltaAngley);
     }
-	glPopMatrix ();
-	Z+=3;
+}
 
-	
-	glColor3f(0,0,0);
-	glPushMatrix ();
-	{
-		glTranslatef (X, Y, Z);
-		gluCylinder (quad, 1.2,1.2,2, 13, 13);
+void mouseButton(int button, int state, int x, int y)
+{
+
+    // only start motion if the left button is pressed
+    if (button == GLUT_LEFT_BUTTON)
+    {
+
+        // when the button is released
+        if (state == GLUT_UP)
+        {
+            angle += deltaAngle;
+            angley += deltaAngley;
+            xOrigin = -1;
+            yOrigin = -1;
+        }
+        else
+        { // state = GLUT_DOWN
+            xOrigin = x;
+            yOrigin = y;
+        }
     }
-	glPopMatrix ();
 }
 
-
-
-
-
-
-
-void display(){
-
-	//clear the display
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(BLACK, 0);	//color black
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	/********************
-	/ set-up camera here
-	********************/
-	//load the correct matrix -- MODEL-VIEW matrix
-	glMatrixMode(GL_MODELVIEW);
-
-	//initialize the matrix
-	glLoadIdentity();
-
-	//now give three info
-	//1. where is the camera (viewer)?
-	//2. where is the camera is looking?
-	//3. Which direction is the camera's UP direction?
-
-	//instead of CONSTANT information, we will define a circular path.
-//	gluLookAt(-30,-30,50,	0,0,0,	0,0,1);
-
-	gluLookAt(cameraRadius*cos(cameraAngle), cameraRadius*sin(cameraAngle), cameraHeight,		0,0,0,		0,0,1);
-	//NOTE: the camera still CONSTANTLY looks at the center
-	// cameraAngle is in RADIAN, since you are using inside COS and SIN
-	
-	
-	//again select MODEL-VIEW
-	glMatrixMode(GL_MODELVIEW);
-
-
-
-
-
-	/****************************
-	/ Add your objects from here
-	****************************/
-
-
-
-	//floor
-	glPushMatrix();
-	{	//STORE the state
-		//a simple rectangles
-	
-		///lets draw another one in the XY plane --- i.e. Z = 0
-
-
-		glColor3f(1,1,1);
-		glBegin(GL_QUADS);
-		{
-			glVertex3f(-100,-100,0);
-			glVertex3f(-100,100,0);
-			glVertex3f(100,100,0);
-			glVertex3f(100,-100,0);
-		}glEnd();
-	}glPopMatrix();		//the effect of rotation is not there now.
-	
-	
-	
-
-
-	//some gridlines along the field
-	int i;
-
-	//WILL draw grid IF the "canDrawGrid" is true:
-	glColor3f(0.3, 0.3, 0.3);
-	if(canDrawGrid == true)
-	{
-		glBegin(GL_LINES);
-		{
-			for(i=-10;i<=10;i++)
-			{
-
-				if(i==0)
-					continue;	//SKIP the MAIN axes
-				
-				//lines parallel to Y-axis
-				glVertex3f(i*10, -100, 0);
-				glVertex3f(i*10,  100, 0);
-
-				//lines parallel to X-axis
-				glVertex3f(-100, i*10, 0);
-				glVertex3f( 100, i*10, 0);
-			}
-		}glEnd();
-	}
-	
-
-
-	
-	// draw the two AXES
-	glColor3f(1, 1, 1);	//100% white
-	glBegin(GL_LINES);{
-		//Y axis
-		glVertex3f(0, -150, 0);	// intentionally extended to -150 to 150, no big deal
-		glVertex3f(0,  150, 0);
-
-		//X axis
-		glVertex3f(-150, 0, 0);
-		glVertex3f( 150, 0, 0);
-	}glEnd();
-
-	
-
-	
-	
-	chair(0,60,0,1,0,1);
-	chair(0,-60,1,0,1,0);
-	
-	chair(-45,30,0,0,1,1);
-	chair(-45,-30,0,0,1,1);
-	
-	chair(45,30,1,1,0,0);
-	chair(45,-30,1,1,0,0);
-	
-	
-
-	shelf();
-	
-	table();
-	
-	chandelier();
-		
-
-	window();
-	
-	screen();
-
-		
-	
-	
-	//x y z r1 r2 h
-	plate(20,20,30,5,10,4);
-	plate(-20,20,30,5,10,4);
-	plate(-20,-20,30,5,10,4);
-	plate(20,-20,30,5,10,4);
-
-	glass(0,0,30,3,3,8);
-	glass(6,1,30,3,3,8);
-
-		
-	
-	bottle(0,40,30);
-
-
-	
-
-	//////// ------ NOTE ---- ORDER matters. compare last two spheres!
-
-	//ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
-	glutSwapBuffers();
+void SpecialKeys(unsigned char key, int x, int y)
+{
+    if (key == 'r') // Open Gate
+    {
+        if (y_rot == 90)
+        {
+            y_rot = 0;
+        }
+        else
+        {
+            y_rot = 90;
+        }
+    }
+    if (key == 'd') // Open Door
+    {
+        if (y_door == 90)
+        {
+            y_door = 0;
+        }
+        else
+        {
+            y_door = 90;
+        }
+    }
+    glutPostRedisplay();
 }
 
+int main(int argc, char **argv)
+{
 
+    // init GLUT and create window
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+    glutInitWindowPosition(100, 100);
+    glutInitWindowSize(1000, 1000); // set window size
+    glutCreateWindow("3D House Tour");
+    // register callbacks
+    MyInit();
+    init_texture();
 
-void animate(){
-	//codes for any changes in Camera
+    glutDisplayFunc(renderScene);
+    glutReshapeFunc(changeSize);
+    glutIdleFunc(renderScene);
 
-	cameraAngle += cameraAngleDelta;	// camera will rotate at 0.002 radians per frame.	// keep the camera steady NOW!!
-	
-	//codes for any changes in Models
-	
-	rectAngle -= 1;
+    glutIgnoreKeyRepeat(1);
+    glutKeyboardFunc(processNormalKeys);
+    glutSpecialFunc(pressKey);
+    glutSpecialUpFunc(releaseKey);
 
-	//MISSING SOMETHING? -- YES: add the following
-	glutPostRedisplay();	//this will call the display AGAIN
-}
+    // here are the two new functions
+    glutKeyboardFunc(SpecialKeys);
+    glutMouseFunc(mouseButton);
+    glutMotionFunc(mouseMove);
 
-void keyboardListener(unsigned char key, int x,int y){
-	switch(key){
+    // OpenGL init
+    glEnable(GL_DEPTH_TEST);
 
-		case '1':	//reverse the rotation of camera
-			cameraAngleDelta = -cameraAngleDelta;
-			break;
+    // enter GLUT event processing cycle
+    glutMainLoop();
 
-		case '2':	//increase rotation of camera by 10%
-			cameraAngleDelta *= 1.1;
-			break;
-
-		case '3':	//decrease rotation
-			cameraAngleDelta /= 1.1;
-			break;
-
-		case '8':	//toggle grids
-			canDrawGrid =  !canDrawGrid;
-			break;
-		
-		case 'a':	//toggle grids
-			st=!st;
-			break;
-
-		case 27:	//ESCAPE KEY -- simply exit
-			exit(0);
-			break;
-
-		default:
-			break;
-	}
-}
-
-
-
-void specialKeyListener(int key, int x,int y){
-	switch(key){
-		case GLUT_KEY_DOWN:		//down arrow key
-			cameraRadius += 10;
-			break;
-		case GLUT_KEY_UP:		// up arrow key
-			if(cameraRadius > 10)
-				cameraRadius -= 10;
-			break;
-
-		case GLUT_KEY_RIGHT:
-			break;
-		case GLUT_KEY_LEFT:
-			break;
-
-		case GLUT_KEY_PAGE_UP:
-			cameraHeight += 10;
-			break;
-		case GLUT_KEY_PAGE_DOWN:
-			cameraHeight -= 10;
-			break;
-
-		case GLUT_KEY_INSERT:
-			break;
-
-		case GLUT_KEY_HOME:
-			break;
-		case GLUT_KEY_END:
-			break;
-
-		default:
-			break;
-	}
-}
-
-void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of the screen (2D)
-	switch(button){
-		case GLUT_LEFT_BUTTON:
-			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
-				
-				cameraAngleDelta = -cameraAngleDelta;	
-			}
-			break;
-
-		case GLUT_RIGHT_BUTTON:
-			//........
-			break;
-
-		case GLUT_MIDDLE_BUTTON:
-			//........
-			break;
-
-		default:
-			break;
-	}
-}
-
-
-void init(){
-	//codes for initialization
-	cameraAngle = 0;	//// init the cameraAngle
-	cameraAngleDelta = 0.002;
-	rectAngle = 0;
-	canDrawGrid = true;
-	cameraHeight = 150;
-	cameraRadius = 150;
-
-	//clear the screen
-	glClearColor(BLACK, 0);
-	
-
-	quad= gluNewQuadric ();
-	
-
-	/************************
-	/ set-up projection here
-	************************/
-	//load the PROJECTION matrix
-	glMatrixMode(GL_PROJECTION);
-	
-	//initialize the matrix
-	glLoadIdentity();
-
-	//give PERSPECTIVE parameters
-	gluPerspective(70,	1,	0.1,	10000.0);
-	//field of view in the Y (vertically)
-	//aspect ratio that determines the field of view in the X direction (horizontally)
-	//near distance
-	//far distance
-}
-
-int main(int argc, char **argv){
-	glutInit(&argc,argv);
-	glutInitWindowSize(500, 500);
-	glutInitWindowPosition(0, 0);
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
-
-	glutCreateWindow("My OpenGL Program");
-
-	init();
-	
-	
-
-	glEnable(GL_DEPTH_TEST);	//enable Depth Testing
-
-	glutDisplayFunc(display);	//display callback function
-	glutIdleFunc(animate);		//what you want to do in the idle time (when no drawing is occuring)
-
-	//ADD keyboard listeners:
-	glutKeyboardFunc(keyboardListener);
-	glutSpecialFunc(specialKeyListener);
-
-	//ADD mouse listeners:
-	glutMouseFunc(mouseListener);
-
-	glutMainLoop();		//The main loop of OpenGL
-
-	return 0;
+    return 1;
 }
