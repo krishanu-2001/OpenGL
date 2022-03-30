@@ -572,6 +572,13 @@ void Draw()
         }
     }
 
+    // sun
+    glPushMatrix();
+    GLUquadricObj *qobj = gluNewQuadric();
+    glTranslatef(0, 40, -50);
+    glColor3f(1, 1, 0);
+    gluSphere(qobj, 4, 16, 16);
+    glPopMatrix();
     // Pool
     glColor3f(0, 0.2, 0.9);
     Pool();
@@ -740,23 +747,23 @@ GLfloat yellow_ambient[] = {0.35, 0.26, 0.05, 1.0},
 void material()
 {
 
-    // glMaterialfv(GL_FRONT, GL_AMBIENT, yellow_ambient);
-    // glMaterialfv(GL_FRONT, GL_DIFFUSE, yellow_diffuse);
-    // glMaterialfv(GL_FRONT, GL_SPECULAR, yellow_specular);
-    // glMaterialf(GL_FRONT, GL_SHININESS, yellow_shininess);
-    // GLfloat a[] = {0.1, 0.1, 0.1, 1.0};
-    // glMaterialfv(GL_FRONT, GL_AMBIENT, a);
-    // glEnable(GL_COLOR_MATERIAL); /* WARNING: Ambient and diffuse material latch immediately to the current color. */
-    // glColorMaterial(GL_FRONT, GL_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, yellow_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, yellow_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, yellow_specular);
+    glMaterialf(GL_FRONT, GL_SHININESS, yellow_shininess);
+    GLfloat a[] = {0.1, 0.1, 0.1, 1.0};
+    glMaterialfv(GL_FRONT, GL_AMBIENT, a);
+    glEnable(GL_COLOR_MATERIAL); /* WARNING: Ambient and diffuse material latch immediately to the current color. */
+    glColorMaterial(GL_FRONT, GL_DIFFUSE);
 }
 
 void display(void)
 {
-    GLfloat position[] = {100, -100, 100, 1.0};
+    GLfloat position[] = {0, 0100, -100, 1.0};
 
     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
-    glTranslatef(0.0, 1000.0, -100);
+    glTranslatef(0.0, 40, -50);
 
     // glPushMatrix();
     glLightfv(GL_LIGHT0, GL_POSITION, position);
