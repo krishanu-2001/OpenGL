@@ -14,13 +14,13 @@ using namespace std;
 /*
  * Name: Krishanu Saini
  * Assn: 9
- * Ques: Build exterior of the house
+ * Ques: Build exterior of house
  * Step: run ./Q1
  * Uses: arrow keys to move
  *       r for door
  *       d for windows
- *       x for intensity decrease
- *       z for intensity increase
+ *       x for Intensity decrease
+ *       z for Intensity increase
  */
 
 
@@ -530,7 +530,6 @@ void material();
 
 void Draw()
 {
-    glClearColor(0, 0, 1, 1);
     Cube(rec1[0], rec1[1], rec1[2], rec1[3], rec1[4], rec1[5], rec1[6], rec1[7]);
     Triangle(tri1[0], tri1[1], tri1[2], tri1[3], tri1[4], tri1[5], tri1[6], tri1[7]);
     glPushMatrix();
@@ -578,7 +577,7 @@ void Draw()
     // sun
     glPushMatrix();
     GLUquadricObj *qobj = gluNewQuadric();
-    glTranslatef(0, 60, -60);
+    glTranslatef(0, 40, -50);
     glColor3f(1, 1, 0);
     gluSphere(qobj, 4, 16, 16);
     glPopMatrix();
@@ -589,7 +588,7 @@ void Draw()
 
 void renderScene(void)
 {
-    glClearColor(0, 0, 1, 1);
+
     light_init();
 
     if (deltaMove)
@@ -762,11 +761,11 @@ void material()
 
 void display(void)
 {
-    GLfloat position[] = {0, 100, -100, 1.0};
+    GLfloat position[] = {0, 0100, -100, 1.0};
 
     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
-    glTranslatef(0.0, 100, -100);
+    glTranslatef(0.0, 40, -50);
 
     // glPushMatrix();
     glLightfv(GL_LIGHT0, GL_POSITION, position);
@@ -790,7 +789,13 @@ void display(void)
     GLfloat light_diffuse[] = {diffuse_intensity, diffuse_intensity, diffuse_intensity, 1.0}; // Diffuse light intersity
 
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT2, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT3, GL_DIFFUSE, light_diffuse);
     glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHT2);
+    glEnable(GL_LIGHT3);
 }
 
 void light_init()

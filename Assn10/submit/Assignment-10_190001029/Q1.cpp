@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <math.h>
-#include "imageio.h"
 
 #include <bits/stdc++.h>
+#include <unistd.h>
 using namespace std;
 
 #ifdef __APPLE__
@@ -13,7 +13,7 @@ using namespace std;
 
 /*
  * Name: Krishanu Saini
- * Assn: 9
+ * Assn: 10
  * Ques: Build exterior of the house
  * Step: run ./Q1
  * Uses: arrow keys to move
@@ -21,36 +21,26 @@ using namespace std;
  *       d for windows
  *       x for intensity decrease
  *       z for intensity increase
+ *       f1 for up, f2 for down
+ *       f for flag on off
  */
 
-
 /*
-Functions added
-Light_init(){
-    Sets up light source as (0, 1000, 0)
-    pointing towards (1, -1, 1)
-}
-
-Trees();
-Road();
-Pool();
 
 */
-
 
 // angle of rotation for the camera direction
 float angle = 0.0f, angley = 0.0f;
 int y_rot = 0.0, y_door = 0.0;
+float flag_time = 0, flag_on = 1;
 // actual vector representing the camera's direction
 float lx = 0.0f, lz = -1.0f, ly = 0.0f;
-float lx_delta = 0.0f;
+float lx_delta = 0.0f, ly_delta = 0.0f;
 // XZ position of the camera
-float x = 0.0f, z = 5.0f;
+float x = 0.0f, y = 1.0f, z = 5.0f;
 
 GLfloat intensity = 0, diffuse_intensity = 0.5;
-GLubyte *textureImage;
 vector<GLfloat> tx(3);
-GLuint texture[2];
 
 // the key states. These variables will be zero
 // when no key is being presses
@@ -94,85 +84,16 @@ void changeSize(int w, int h)
     glMatrixMode(GL_MODELVIEW);
 }
 
-void drawSnowMan()
-{
-
-    glColor3f(1.0f, 1.0f, 1.0f);
-
-    // Draw Body
-    glTranslatef(0.0f, 0.75f, 0.0f);
-    glutSolidSphere(0.75f, 20, 20);
-
-    // Draw Head
-    glTranslatef(0.0f, 1.0f, 0.0f);
-    glutSolidSphere(0.25f, 20, 20);
-
-    // Draw Eyes
-    glPushMatrix();
-    glColor3f(0.0f, 0.0f, 0.0f);
-    glTranslatef(0.05f, 0.10f, 0.18f);
-    glutSolidSphere(0.05f, 10, 10);
-    glTranslatef(-0.1f, 0.0f, 0.0f);
-    glutSolidSphere(0.05f, 10, 10);
-    glPopMatrix();
-
-    // Draw Nose
-    glColor3f(1.0f, 0.5f, 0.5f);
-    glRotatef(0.0f, 1.0f, 0.0f, 0.0f);
-    glutSolidCone(0.08f, 0.5f, 10, 2);
-}
-
 void computePos(float deltaMove)
 {
 
     x += deltaMove * lx * 0.1f;
+    y += ly_delta;
     z += deltaMove * lz * 0.1f;
-}
-
-void init_texture(void)
-{
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glEnable(GL_DEPTH_TEST);
-    // The following two lines enable semi transparent
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    int width, height;
-    int width1, height1;
-    bool hasAlpha;
-    char filename[] = "cupboard.png";
-    char filename1[] = "d1.png";
-    // bool success = loadPngImage(filename, width, height, hasAlpha, &textureImage);
-    unsigned char *ibuffer = loadImageRGBA(filename, &width, &height);
-    std::cout << "Image loaded " << width << " " << height << " alpha " << hasAlpha << std::endl;
-    std::cout << "Image loaded " << width1 << " " << height1 << " alpha " << hasAlpha << std::endl;
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glGenTextures(2, texture);
-    cout << texture[0] << " " << texture[1] << endl;
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ibuffer);
-
-    ibuffer = loadImageRGBA(filename1, &width, &height);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, texture[1]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ibuffer);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glEnable(GL_TEXTURE_2D);
-    glShadeModel(GL_FLAT);
 }
 
 void FaceTexture(GLfloat A[], GLfloat B[], GLfloat C[], GLfloat D[], int text = 1)
 {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture[text]);
     glBegin(GL_POLYGON);
     glTexCoord2f(1.0, 1.0);
     glVertex3fv(A);
@@ -526,10 +447,10 @@ void Pool()
     Face(r[10], r[8], r[7], r[3]); // Left wall
 }
 
-void material();
-
 void Draw()
 {
+    light_init();
+
     glClearColor(0, 0, 1, 1);
     Cube(rec1[0], rec1[1], rec1[2], rec1[3], rec1[4], rec1[5], rec1[6], rec1[7]);
     Triangle(tri1[0], tri1[1], tri1[2], tri1[3], tri1[4], tri1[5], tri1[6], tri1[7]);
@@ -538,6 +459,15 @@ void Draw()
     Windows(win1[0], win1[1], win1[2], win1[3]);
     Windows(win2[0], win2[1], win2[2], win2[3]);
     glPopMatrix();
+
+    // ground
+    glColor3f(0.9f, 0.9f, 0.9f);
+    glBegin(GL_QUADS);
+    glVertex3f(-100.0f, -0.1f, -100.0f);
+    glVertex3f(-100.0f, -0.1f, 100.0f);
+    glVertex3f(100.0f, -0.1f, 100.0f);
+    glVertex3f(100.0f, -0.1f, -100.0f);
+    glEnd();
 
     // open door
     glPushMatrix();
@@ -575,26 +505,67 @@ void Draw()
         }
     }
 
+    GLUquadricObj *qobj = gluNewQuadric();
+
     // sun
     glPushMatrix();
-    GLUquadricObj *qobj = gluNewQuadric();
-    glTranslatef(0, 60, -60);
+    glTranslatef(0, 40, -50);
     glColor3f(1, 1, 0);
     gluSphere(qobj, 4, 16, 16);
     glPopMatrix();
     // Pool
     glColor3f(0, 0.2, 0.9);
     Pool();
+
+    // Flag
+    glPushMatrix();
+    glTranslatef(0, 0, 20);
+    glColor3f(0.7, 0.7, 0.3);
+    glRotatef(270, 1.0, 0, 0);
+    gluCylinder(qobj, 0.1, 0.1, 10, 100, 16);
+    // waving flag
+    glPushMatrix();
+    glRotatef(-270, 1.0, 0, 0);
+
+    float num_elements = 100;
+    float dx = 4 / num_elements;
+    for (int i = 0; i < num_elements; i++)
+    {
+        float phase1 = i * dx;
+        int j = i + 1;
+        float phase2 = j * dx;
+
+        glBegin(GL_POLYGON);
+        if (flag_on == 1)
+        {
+            glVertex3f(dx * i, 8, (cosf((2 * 3.14159 / 500 * flag_time) + phase1)) * i / num_elements);
+            glVertex3f(dx * i, 10, (cosf((2 * 3.14159 / 500 * flag_time) + phase1)) * i / num_elements);
+            glVertex3f(dx * j, 10, (cosf((2 * 3.14159 / 500 * flag_time) + phase2)) * j / num_elements);
+            glVertex3f(dx * j, 8, (cosf((2 * 3.14159 / 500 * flag_time) + phase2)) * j / num_elements);
+        }
+        else
+        {
+            glVertex3f(dx * i, 8, (cosf((2 * 3.14159 / 500 * 1) + phase1)) * i / num_elements);
+            glVertex3f(dx * i, 10, (cosf((2 * 3.14159 / 500 * 1) + phase1)) * i / num_elements);
+            glVertex3f(dx * j, 10, (cosf((2 * 3.14159 / 500 * 1) + phase2)) * j / num_elements);
+            glVertex3f(dx * j, 8, (cosf((2 * 3.14159 / 500 * 1) + phase2)) * j / num_elements);
+        }
+        glEnd();
+    }
+    glPopMatrix();
+    glPopMatrix();
 }
 
 void renderScene(void)
 {
     glClearColor(0, 0, 1, 1);
-    light_init();
 
     if (deltaMove)
         computePos(deltaMove);
-
+    if (ly_delta)
+    {
+        y += ly_delta;
+    }
     // Clear Color and Depth Buffers
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -602,21 +573,14 @@ void renderScene(void)
     glLoadIdentity();
     // Set the camera
     lx += lx_delta;
-    gluLookAt(x, 1.0f, z + 40,
-              x + lx, 1.0f + ly, z + lz + 40,
+    gluLookAt(x, y, z + 40,
+              x + lx, y + ly, z + lz + 40,
               0.0f, 1.0f, 0.0f);
 
-    // Draw ground
+    // ground
 
-    glColor3f(0.9f, 0.9f, 0.9f);
-    glBegin(GL_QUADS);
-    glVertex3f(-100.0f, -0.1f, -100.0f);
-    glVertex3f(-100.0f, -0.1f, 100.0f);
-    glVertex3f(100.0f, -0.1f, 100.0f);
-    glVertex3f(100.0f, -0.1f, -100.0f);
-    glEnd();
-
-    // draw house
+    usleep(10000);
+    flag_time += 1;
     Draw();
 
     glutSwapBuffers();
@@ -635,16 +599,22 @@ void pressKey(int key, int xx, int yy)
     switch (key)
     {
     case GLUT_KEY_UP:
-        deltaMove = 0.1f;
+        deltaMove = 0.5f;
         break;
     case GLUT_KEY_DOWN:
-        deltaMove = -0.1f;
+        deltaMove = -0.5f;
         break;
     case GLUT_KEY_LEFT:
-        lx_delta = -0.0005;
+        lx_delta = -0.001;
         break;
     case GLUT_KEY_RIGHT:
-        lx_delta = 0.0005;
+        lx_delta = 0.001;
+        break;
+    case GLUT_KEY_F1:
+        ly_delta = 0.01;
+        break;
+    case GLUT_KEY_F2:
+        ly_delta = -0.01;
         break;
     }
 }
@@ -660,6 +630,10 @@ void releaseKey(int key, int x, int y)
     case GLUT_KEY_LEFT:
     case GLUT_KEY_RIGHT:
         lx_delta = 0;
+        break;
+    case GLUT_KEY_F1:
+    case GLUT_KEY_F2:
+        ly_delta = 0;
         break;
     }
 }
@@ -737,6 +711,11 @@ void SpecialKeys(unsigned char key, int x, int y)
     {
         diffuse_intensity -= 0.05;
     }
+    if (key == 'f')
+    {
+        flag_time = 0;
+        flag_on = 1 - flag_on;
+    }
     diffuse_intensity = min(diffuse_intensity, (float)1.0);
     diffuse_intensity = max(diffuse_intensity, (float)0.0);
     glutPostRedisplay();
@@ -762,12 +741,12 @@ void material()
 
 void display(void)
 {
-    GLfloat position[] = {0, 100, -100, 1.0};
+    GLfloat position[] = {-20, 40, -30, 1.0};
 
     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
     glTranslatef(0.0, 100, -100);
-
+    glLoadIdentity();
     // glPushMatrix();
     glLightfv(GL_LIGHT0, GL_POSITION, position);
 
@@ -785,29 +764,18 @@ void display(void)
 
     material();
 
-    cout << diffuse_intensity << endl;
+    // cout << diffuse_intensity << endl;
 
     GLfloat light_diffuse[] = {diffuse_intensity, diffuse_intensity, diffuse_intensity, 1.0}; // Diffuse light intersity
+    GLfloat light_ambient[] = {1, 1, 1, 1.0};                                                 // Diffuse light intersity
 
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
     glEnable(GL_LIGHT0);
 }
 
 void light_init()
 {
-    // GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
-    // GLfloat mat_shininess[] = {50.0};
-    // // GLfloat light_position[] = {0, 10.0, 10.0, 0.0};
-    // GLfloat diffuse[] = {0.4, 0.4, 0.4, 1.0};
-    // glClearColor(0.0, 0.0, 0.0, 0.0);
-    // glShadeModel(GL_SMOOTH);
-
-    // glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    // glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    // // glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    // glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
-    // glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, light_position);
-
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
@@ -826,7 +794,6 @@ int main(int argc, char **argv)
     // register callbacks
     glEnable(GL_COLOR_MATERIAL);
     MyInit();
-    init_texture();
     light_init();
 
     glutDisplayFunc(renderScene);

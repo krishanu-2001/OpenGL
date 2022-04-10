@@ -18,9 +18,6 @@ int r;
 
 void BresenhamCircle(int x1, int y1, int r) {
     glColor3f(0,0,0);
-    y1
-    y
-    y2
     // p = d1 - d2
     int p = 3 - 2*r; // starting value of decision parameter
     int xi = 0, yi = r;
